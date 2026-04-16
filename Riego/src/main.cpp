@@ -1,60 +1,73 @@
 #include <Arduino.h>
+#include <esp_sleep.h>
 
-#define PIN_RELE 3
-#define PIN_SENSOR 4
+#define RELAY_PIN 3
+#define SENSOR_PIN 4
+#define DEBUG_MODE true // Cambiar a false en producción
 
-// Configuración
-const int UMBRAL_RIEGO = 3000; // Mayor a esto = Seco
-const int MUESTRAS = 10;       // Número de lecturas para promediar
-const int TIEMPO_RIEGO = 2000; // 2 segundos de agua
+const int DRY_THRESHOLD = 3000;
+const int NUM_SAMPLES = 5;
+const int WATERING_TIME_MS = 2000;
+const int MEASURE_INTERVAL = 10; // seconds between readings
+const int FILTER_WAIT = 6;       // TODO:60   // seconds after watering
+
+int getFilteredHumidity()
+{
+  long sum = 0;
+  for (int i = 0; i < NUM_SAMPLES; i++)
+  {
+    sum += analogRead(SENSOR_PIN);
+    delay(20);
+  }
+
+  int average = sum / NUM_SAMPLES;
+  Serial.printf("Humidity: %d\n", average);
+  return average;
+}
+#define DEBUG_MODE true // Cambiar a false en producción
+
+void sleepSeconds(int seconds)
+{
+  if (DEBUG_MODE)
+  {
+    delay(seconds * 1000); // En desarrollo: simple delay, USB estable
+    return;
+  }
+
+  Serial.flush();
+  Serial.end();
+  esp_sleep_enable_timer_wakeup((uint64_t)seconds * 1000000ULL);
+  esp_light_sleep_start();
+  Serial.begin(115200);
+}
 
 void setup()
 {
   Serial.begin(115200);
-  pinMode(PIN_RELE, INPUT); // Relé apagado (flotante)
-  analogReadResolution(12); // Aseguramos resolución de 4095
-}
+  pinMode(RELAY_PIN, INPUT);
+  analogReadResolution(12);
 
-int obtenerHumedadFiltrada()
-{
-  long suma = 0;
-  for (int i = 0; i < MUESTRAS; i++)
-  {
-    suma += analogRead(PIN_SENSOR);
-    delay(10); // Pequeña pausa entre lecturas
-  }
-  Serial.print("Humedad Calculada ");
-  Serial.println(suma / MUESTRAS);
-  return suma / MUESTRAS;
+  btStop();
 }
 
 void loop()
 {
-  int humedad = obtenerHumedadFiltrada();
+  int humidity = getFilteredHumidity();
 
-  Serial.print("Humedad (Media): ");
-  Serial.println(humedad);
-
-  if (humedad > UMBRAL_RIEGO)
+  if (humidity > DRY_THRESHOLD)
   {
-    Serial.println(">> Límite superado. Verificando...");
+    Serial.println("Dry soil — watering...");
 
-    // Doble comprobación: esperamos 2 segundos y volvemos a medir
-    // para estar 100% seguros de que no es un error puntual.
-    delay(2000);
-    if (obtenerHumedadFiltrada() > UMBRAL_RIEGO)
-    {
-      Serial.println(">> Confirmado: Tierra seca. Regando...");
-      pinMode(PIN_RELE, OUTPUT);
-      digitalWrite(PIN_RELE, LOW);
-      delay(TIEMPO_RIEGO);
-      pinMode(PIN_RELE, INPUT);
-      Serial.println(">> Riego terminado.");
+    pinMode(RELAY_PIN, OUTPUT);
+    digitalWrite(RELAY_PIN, LOW);
+    delay(WATERING_TIME_MS);
+    pinMode(RELAY_PIN, INPUT);
 
-      // Espera larga para que el agua se filtre y el sensor se entere
-      delay(60000);
-    }
+    Serial.println("Watering done. Waiting for absorption...");
+    sleepSeconds(FILTER_WAIT);
   }
-
-  delay(10000); // Medir cada 10 segundos
+  else
+  {
+    sleepSeconds(MEASURE_INTERVAL);
+  }
 }
