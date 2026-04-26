@@ -10,6 +10,9 @@
             "includePath": [
                 "C:/Users/Francisco Rosa/Documents/PlatformIO/Projects/Riego/include",
                 "C:/Users/Francisco Rosa/Documents/PlatformIO/Projects/Riego/src",
+                "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/HTTPClient/src",
+                "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/WiFiClientSecure/src",
+                "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src",
                 "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32c3/include/newlib/platform_include",
                 "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32c3/include/freertos/include",
                 "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32c3/include/freertos/include/esp_additions/freertos",
@@ -214,7 +217,6 @@
                 "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/Ethernet/src",
                 "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/FFat/src",
                 "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/FS/src",
-                "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/HTTPClient/src",
                 "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/HTTPUpdate/src",
                 "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/HTTPUpdateServer/src",
                 "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/I2S/src",
@@ -232,8 +234,6 @@
                 "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/USB/src",
                 "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/Update/src",
                 "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/WebServer/src",
-                "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src",
-                "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/WiFiClientSecure/src",
                 "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/WiFiProv/src",
                 "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src",
                 ""
@@ -243,6 +243,9 @@
                 "path": [
                     "C:/Users/Francisco Rosa/Documents/PlatformIO/Projects/Riego/include",
                     "C:/Users/Francisco Rosa/Documents/PlatformIO/Projects/Riego/src",
+                    "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/HTTPClient/src",
+                    "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/WiFiClientSecure/src",
+                    "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src",
                     "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32c3/include/newlib/platform_include",
                     "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32c3/include/freertos/include",
                     "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32c3/include/freertos/include/esp_additions/freertos",
@@ -447,7 +450,6 @@
                     "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/Ethernet/src",
                     "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/FFat/src",
                     "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/FS/src",
-                    "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/HTTPClient/src",
                     "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/HTTPUpdate/src",
                     "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/HTTPUpdateServer/src",
                     "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/I2S/src",
@@ -465,8 +467,6 @@
                     "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/USB/src",
                     "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/Update/src",
                     "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/WebServer/src",
-                    "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src",
-                    "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/WiFiClientSecure/src",
                     "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/WiFiProv/src",
                     "C:/Users/Francisco Rosa/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src",
                     ""
