@@ -8,14 +8,14 @@
 // ─── Configuración ────────────────────────────────────────────────────────────
 
 #define RELAY_PIN 3
-#define SENSOR_PIN 4
-#define DEBUG_MODE true // true = delay() en vez de deep sleep (USB estable)
+#define SENSOR_PIN 0
+#define DEBUG_MODE false // true = delay() en vez de deep sleep (USB estable)
 
 const int DRY_THRESHOLD = 3000;
 const int NUM_SAMPLES = 5;
 const int WATERING_TIME_MS = 2000;
-const int MEASURE_INTERVAL = 10;   // TODO: replace with 300 in prod;  // segundos entre mediciones (5 min)
-const int FILTER_WAIT = 1000;      // TODO: replace with 3600 in prod;        // segundos de espera tras regar (1 hora)
+const int MEASURE_INTERVAL = 20;   // TODO: replace with 300 in prod;  // segundos entre mediciones (5 min)
+const int FILTER_WAIT = 20;        // TODO: replace with 3600 in prod;        // segundos de espera tras regar (1 hora)
 const int BATCH_SIZE = 1;          // TODO: replace with 12 in prod;         // lecturas antes de enviar (~1 hora)
 const int WIFI_TIMEOUT_MS = 15000; // tiempo máximo esperando WiFi
 
@@ -43,6 +43,13 @@ RTC_DATA_ATTR bool initialized = false;
 
 int getFilteredHumidity()
 {
+  // Lecturas de descarte para estabilizar el ADC
+  for (int i = 0; i < 3; i++)
+  {
+    analogRead(SENSOR_PIN);
+    delay(10);
+  }
+
   long sum = 0;
   for (int i = 0; i < NUM_SAMPLES; i++)
   {
@@ -169,8 +176,10 @@ void sendBatch()
 void setup()
 {
   Serial.begin(115200);
-  pinMode(RELAY_PIN, INPUT);
+  pinMode(RELAY_PIN, OUTPUT);
+  digitalWrite(RELAY_PIN, LOW);
   analogReadResolution(12);
+  analogSetAttenuation(ADC_11db);
   btStop();
 
   if (!initialized)
@@ -197,10 +206,9 @@ void loop()
   if (watered)
   {
     Serial.println("Suelo seco — regando...");
-    pinMode(RELAY_PIN, OUTPUT);
-    digitalWrite(RELAY_PIN, LOW);
+    digitalWrite(RELAY_PIN, HIGH); // Activa el riego
     delay(WATERING_TIME_MS);
-    pinMode(RELAY_PIN, INPUT);
+    digitalWrite(RELAY_PIN, LOW); // Corta el riego
     Serial.println("Riego completado. Esperando absorción...");
 
     // Enviar inmediatamente al regar (evento importante)
