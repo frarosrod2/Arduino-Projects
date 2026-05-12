@@ -7,11 +7,19 @@
 
 // ─── Configuración ────────────────────────────────────────────────────────────
 
-#define RELAY_PIN 3
+#define RELAY_PIN 2
 #define SENSOR_PIN 0
 #define DEBUG_MODE false // true = delay() en vez de deep sleep (USB estable)
 
-const int DRY_THRESHOLD = 3000;
+#define SENSOR_PIN 2
+#define RELAY_PIN 3
+#define DEBUG_MODE false
+
+// Calibración basada en mediciones reales
+const int VAL_AIR_DRY = 2300;     // Tierra seca (0%)
+const int VAL_WATER_WET = 1200;   // Tierra muy regada (100%)
+const int DRY_THRESHOLD_PCT = 36; // Umbral de riego al 36% de humedad
+
 const int NUM_SAMPLES = 5;
 const int WATERING_TIME_MS = 2000;
 const int MEASURE_INTERVAL = 20;   // TODO: replace with 300 in prod;  // segundos entre mediciones (5 min)
@@ -41,10 +49,9 @@ RTC_DATA_ATTR bool initialized = false;
 
 // ─── Sensor ───────────────────────────────────────────────────────────────────
 
-int getFilteredHumidity()
+int getPercentageHumidity()
 {
-  // Lecturas de descarte para estabilizar el ADC
-  for (int i = 0; i < 3; i++)
+  for (int i = 0; i < 5; i++)
   {
     analogRead(SENSOR_PIN);
     delay(10);
@@ -56,9 +63,14 @@ int getFilteredHumidity()
     sum += analogRead(SENSOR_PIN);
     delay(20);
   }
-  int avg = sum / NUM_SAMPLES;
-  Serial.printf("Humedad: %d\n", avg);
-  return avg;
+  int raw = sum / NUM_SAMPLES;
+
+  // Mapeo corregido: 2300 es seco (0%) y 1200 es mojado (100%)
+  int pct = map(raw, VAL_AIR_DRY, VAL_WATER_WET, 0, 100);
+  pct = constrain(pct, 0, 100);
+
+  Serial.printf("Raw: %d | Humedad: %d%%\n", raw, pct);
+  return pct;
 }
 
 // ─── Sleep ────────────────────────────────────────────────────────────────────
@@ -193,14 +205,14 @@ void setup()
 
 void loop()
 {
-  int humidity = getFilteredHumidity();
-  Serial.printf("Lectura %d: humedad=%d\n", bufferCount + 1, humidity);
-  bool watered = humidity > DRY_THRESHOLD;
+  int percentageHumidity = getPercentageHumidity();
+  Serial.printf("Lectura %d: humedad=%d\n", bufferCount + 1, percentageHumidity);
+  bool watered = percentageHumidity > DRY_THRESHOLD_PCT;
 
   // Guardar lectura en buffer RTC
   if (bufferCount < BATCH_SIZE)
   {
-    buffer[bufferCount++] = {humidity, watered, totalSeconds};
+    buffer[bufferCount++] = {percentageHumidity, watered, totalSeconds};
   }
 
   if (watered)
