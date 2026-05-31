@@ -7,9 +7,9 @@
 
 // ─── Configuración ────────────────────────────────────────────────────────────
 
-#define SENSOR_PIN 3
-#define RELAY_PIN 2
-#define DEBUG_MODE false // true = delay() en vez de deep sleep (USB estable)
+#define SENSOR_PIN 0
+#define RELAY_PIN 3
+#define DEBUG_MODE true // true = delay() en vez de deep sleep (USB estable)
 
 // Calibración basada en mediciones reales
 const int VAL_AIR_DRY = 2300;     // Tierra seca (0%)
@@ -203,7 +203,7 @@ void loop()
 {
   int percentageHumidity = getPercentageHumidity();
   Serial.printf("Lectura %d: humedad=%d\n", bufferCount + 1, percentageHumidity);
-  bool watered = percentageHumidity > DRY_THRESHOLD_PCT;
+  bool watered = percentageHumidity < DRY_THRESHOLD_PCT;
 
   // Guardar lectura en buffer RTC
   if (bufferCount < BATCH_SIZE)
