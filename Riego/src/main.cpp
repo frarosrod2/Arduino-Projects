@@ -9,18 +9,18 @@
 
 #define SENSOR_PIN 0
 #define RELAY_PIN 3
-#define DEBUG_MODE true // true = delay() en vez de deep sleep (USB estable)
+#define DEBUG_MODE false
 
 // Calibración basada en mediciones reales
 const int VAL_AIR_DRY = 2300;     // Tierra seca (0%)
 const int VAL_WATER_WET = 1200;   // Tierra muy regada (100%)
-const int DRY_THRESHOLD_PCT = 36; // Umbral de riego al 36% de humedad
+const int DRY_THRESHOLD_PCT = 40; // Umbral de riego al 40% de humedad
 
 const int NUM_SAMPLES = 5;
-const int WATERING_TIME_MS = 2000;
-const int MEASURE_INTERVAL = 20;   // TODO: replace with 300 in prod;  // segundos entre mediciones (5 min)
-const int FILTER_WAIT = 20;        // TODO: replace with 3600 in prod;        // segundos de espera tras regar (1 hora)
-const int BATCH_SIZE = 1;          // TODO: replace with 12 in prod;         // lecturas antes de enviar (~1 hora)
+const int WATERING_TIME_MS = 3000;
+const int MEASURE_INTERVAL = 300;  // segundos entre mediciones
+const int FILTER_WAIT = 300;       // segundos de espera tras regar
+const int BATCH_SIZE = 4;          // lecturas antes de enviar
 const int WIFI_TIMEOUT_MS = 15000; // tiempo máximo esperando WiFi
 
 const char *NTP_SERVER = "pool.ntp.org";
@@ -206,10 +206,12 @@ void loop()
   bool watered = percentageHumidity < DRY_THRESHOLD_PCT;
 
   // Guardar lectura en buffer RTC
-  if (bufferCount < BATCH_SIZE)
+  if (bufferCount >= BATCH_SIZE)
   {
-    buffer[bufferCount++] = {percentageHumidity, watered, totalSeconds};
+    memmove(&buffer[0], &buffer[1], sizeof(Reading) * (BATCH_SIZE - 1));
+    bufferCount = BATCH_SIZE - 1;
   }
+  buffer[bufferCount++] = {percentageHumidity, watered, totalSeconds};
 
   if (watered)
   {
@@ -222,7 +224,7 @@ void loop()
     // Enviar inmediatamente al regar (evento importante)
     sendBatch();
 
-    totalSeconds += FILTER_WAIT;
+    totalSeconds += WATERING_TIME_MS / 1000 + FILTER_WAIT;
     sleepSeconds(FILTER_WAIT);
   }
   else
