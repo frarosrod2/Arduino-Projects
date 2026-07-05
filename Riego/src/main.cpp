@@ -18,8 +18,8 @@ const int DRY_THRESHOLD_PCT = 50; // Umbral de riego al 50% de humedad
 
 const int NUM_SAMPLES = 5;
 const int WATERING_TIME_MS = 5000;
-const int MEASURE_INTERVAL = 600;  // segundos entre mediciones
-const int FILTER_WAIT = 1200;      // segundos de espera tras regar
+const int MEASURE_INTERVAL = 300;  // segundos entre mediciones
+const int FILTER_WAIT = 300;       // segundos de espera tras regar
 const int BATCH_SIZE = 4;          // lecturas antes de enviar
 const int WIFI_TIMEOUT_MS = 15000; // tiempo máximo esperando WiFi
 
