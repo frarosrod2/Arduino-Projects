@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <link rel="icon" href="data:,">
+  <title>Riego — Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>Riego</h1>
+    <span class="muted" id="updated"></span>
+    <span class="spacer"></span>
+    <button id="refresh" type="button">Actualizar</button>
+  </header>
+
+  <main>
+    <div class="notice error" id="notice" hidden></div>
+
+    <section class="cards" aria-label="Estado actual">
+      <div class="card">
+        <div class="label">Humedad</div>
+        <div class="value" id="stat-humidity">—</div>
+        <div class="muted" id="stat-humidity-note">sin datos</div>
+      </div>
+      <div class="card">
+        <div class="label">Riego</div>
+        <div class="value small" id="stat-state">—</div>
+      </div>
+      <div class="card">
+        <div class="label">Última medición</div>
+        <div class="value small" id="stat-last">—</div>
+      </div>
+      <div class="card">
+        <div class="label">Riegos en el rango</div>
+        <div class="value small" id="stat-waterings">—</div>
+      </div>
+    </section>
+
+    <section aria-label="Evolución de la humedad">
+      <h2>Humedad</h2>
+      <div class="ranges" id="ranges" role="group" aria-label="Rango de tiempo"></div>
+      <div class="chart-wrap">
+        <canvas id="chart" aria-label="Gráfico de humedad en el tiempo" role="img"></canvas>
+      </div>
+      <p class="muted" id="chart-note"></p>
+    </section>
+
+    <section aria-label="Historial de riegos">
+      <h2>Últimos riegos</h2>
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Cuándo</th>
+            <th scope="col">Humedad</th>
+          </tr>
+        </thead>
+        <tbody id="events-body">
+          <tr><td colspan="2" class="muted">Cargando…</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer>
+    Las fechas se guardan en UTC y se muestran en la zona horaria de tu navegador
+    (<span id="footer-tz">—</span>). Los datos se refrescan solos cada minuto.
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
