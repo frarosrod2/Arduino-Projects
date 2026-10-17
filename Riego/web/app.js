@@ -18,11 +18,27 @@ const STALE_MS = 45 * 60000;
 const DRY_THRESHOLD = 50;
 
 const RANGES = {
-  '24h': { ms: 24 * 3600e3, bucketMin: 30 },
-  '7d': { ms: 7 * 24 * 3600e3, bucketMin: 120 },
-  '30d': { ms: 30 * 24 * 3600e3, bucketMin: 360 },
-  'all': { ms: null, bucketMin: 720 },
+  '24h': { ms: 24 * 3600e3 },
+  '7d': { ms: 7 * 24 * 3600e3 },
+  '30d': { ms: 30 * 24 * 3600e3 },
+  'all': { ms: null },
 };
+
+// Ticks en horas o días redondos. Con un eje linear el paso por defecto es un múltiplo
+// decimal de milisegundos (10.000.000 ms = 2 h 47 min), así que las etiquetas caían en
+// minutos arbitrarios (16:13, 21:46) y el eje se estiraba más allá de los datos.
+const MIN_MS = 60000;
+const HOUR_MS = 60 * MIN_MS;
+const DAY_MS = 24 * HOUR_MS;
+
+function tickStep(spanMs) {
+  const steps = [
+    5 * MIN_MS, 15 * MIN_MS, 30 * MIN_MS,
+    HOUR_MS, 2 * HOUR_MS, 3 * HOUR_MS, 6 * HOUR_MS, 12 * HOUR_MS,
+    DAY_MS, 2 * DAY_MS, 7 * DAY_MS, 14 * DAY_MS,
+  ];
+  return steps.find((step) => spanMs / step <= 10) ?? 28 * DAY_MS;
+}
 
 // ─── Formato (UTC guardado → hora local del navegador) ────────────────────────
 
@@ -151,31 +167,6 @@ async function fetchWaterings() {
   return data;
 }
 
-// ─── Agrupado por intervalos (para que el gráfico no tenga miles de puntos) ───
-
-function bucketize(rows, bucketMin) {
-  const size = bucketMin * 60000;
-  const buckets = new Map();
-
-  for (const row of rows) {
-    const key = Math.floor(new Date(timestampOf(row)).getTime() / size) * size;
-    let bucket = buckets.get(key);
-    if (!bucket) {
-      bucket = { time: key, sum: 0, count: 0, min: 100, max: 0, watered: false };
-      buckets.set(key, bucket);
-    }
-    bucket.sum += row.humidity;
-    bucket.count += 1;
-    bucket.min = Math.min(bucket.min, row.humidity);
-    bucket.max = Math.max(bucket.max, row.humidity);
-    if (row.watered) bucket.watered = true;
-  }
-
-  return [...buckets.values()]
-    .sort((a, b) => a.time - b.time)
-    .map((bucket) => ({ ...bucket, avg: Math.round(bucket.sum / bucket.count) }));
-}
-
 // ─── Render ───────────────────────────────────────────────────────────────────
 
 function showNotice(text, kind) {
@@ -218,64 +209,117 @@ function renderStats(latest) {
   return { stale, when };
 }
 
-function renderChart(rows, bucketMin) {
-  const buckets = bucketize(rows, bucketMin);
+function renderChart(rows) {
+  // Un punto por lectura real. El promedio de un bucket fabrica valores que ninguna
+  // medición tuvo: un riego a 0 % terminaba dibujado en 68 % porque el promedio de
+  // esos 30 minutos incluía las lecturas mojadas posteriores al riego.
+  const points = rows
+    .map((row) => ({ x: new Date(timestampOf(row)).getTime(), y: row.humidity, watered: row.watered }))
+    .sort((a, b) => a.x - b.x);
 
   if (!chart) {
     chart = new Chart(document.getElementById('chart'), {
       type: 'line',
-      data: { labels: [], datasets: [] },
+      data: { datasets: [] },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         animation: false,
-        interaction: { mode: 'index', intersect: false },
+        // Requisito del plugin de decimation: sin parseo interno y con los datos ya
+        // ordenados por x.
+        parsing: false,
+        // nearest + axis x es el modo que la doc de Chart.js recomienda con decimation.
+        interaction: { mode: 'nearest', axis: 'x', intersect: false },
         scales: {
-          x: { ticks: { maxRotation: 0, autoSkip: true, color: '#93a1b0' }, grid: { color: '#2e3945' } },
+          x: {
+            type: 'linear',
+            ticks: {
+              maxRotation: 0,
+              autoSkip: true,
+              color: '#93a1b0',
+              callback: (value) => fmtShort.format(new Date(value)),
+            },
+            grid: { color: '#2e3945' },
+            // Posiciones de tick en horas/días redondos dentro del rango visible.
+            afterBuildTicks: (axis) => {
+              const step = tickStep(axis.max - axis.min);
+              const start = Math.ceil(axis.min / step) * step;
+              const ticks = [];
+              for (let value = start; value <= axis.max; value += step) ticks.push({ value });
+              axis.ticks = ticks;
+            },
+          },
           y: { min: 0, max: 100, ticks: { color: '#93a1b0', callback: (v) => `${v}%` }, grid: { color: '#2e3945' } },
         },
         plugins: {
           legend: { labels: { color: '#e6edf3', boxWidth: 12 } },
-          tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y}%` } },
+          tooltip: {
+            callbacks: {
+              title: (items) => (items.length ? fmtFull.format(new Date(items[0].parsed.x)) : ''),
+              label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y}%`,
+            },
+          },
+          // min-max descarta puntos reales pero nunca inventa valores. Solo aplica a
+          // datasets de tipo line: por eso los riegos van como scatter y quedan
+          // fuera del alcance del plugin (ningún evento se pierde).
+          decimation: { enabled: true, algorithm: 'min-max' },
         },
       },
     });
   }
 
-  chart.data.labels = buckets.map((bucket) => fmtShort.format(bucket.time));
-  chart.data.datasets = [
-    {
-      label: 'Humedad',
-      data: buckets.map((bucket) => bucket.avg),
-      borderColor: '#3fb950',
-      backgroundColor: 'rgba(63, 185, 80, 0.15)',
-      fill: true,
-      borderWidth: 2,
-      pointRadius: 0,
-      tension: 0.25,
-    },
-    {
-      label: 'Umbral de riego',
-      data: buckets.map(() => DRY_THRESHOLD),
-      borderColor: '#d29922',
-      borderDash: [5, 5],
-      borderWidth: 1,
-      pointRadius: 0,
-    },
-    {
-      label: 'Riego',
-      data: buckets.map((bucket) => (bucket.watered ? bucket.avg : null)),
-      borderColor: '#f85149',
-      backgroundColor: '#f85149',
-      showLine: false,
-      pointRadius: 5,
-      pointHoverRadius: 7,
-    },
-  ];
+  const humidity = points.map(({ x, y }) => ({ x, y }));
+  const waterings = points.filter((point) => point.watered).map(({ x, y }) => ({ x, y }));
+  const first = points.length ? points[0].x : null;
+  const last = points.length ? points[points.length - 1].x : null;
+  const threshold = first === null ? [] : [{ x: first, y: DRY_THRESHOLD }, { x: last, y: DRY_THRESHOLD }];
+
+  chart.data.datasets = points.length
+    ? [
+        {
+          label: 'Humedad',
+          type: 'line',
+          data: humidity,
+          borderColor: '#3fb950',
+          backgroundColor: 'rgba(63, 185, 80, 0.15)',
+          fill: true,
+          borderWidth: 2,
+          pointRadius: 0,
+          tension: 0.25,
+        },
+        {
+          label: 'Umbral de riego',
+          type: 'line',
+          data: threshold,
+          borderColor: '#d29922',
+          borderDash: [5, 5],
+          borderWidth: 1,
+          pointRadius: 0,
+        },
+        {
+          label: 'Riego',
+          type: 'scatter',
+          data: waterings,
+          borderColor: '#f85149',
+          backgroundColor: '#f85149',
+          pointRadius: 5,
+          pointHoverRadius: 7,
+        },
+      ]
+    : [];
+  if (first === null) {
+    chart.options.scales.x.min = undefined;
+    chart.options.scales.x.max = undefined;
+  } else {
+    // Eje pegado a los datos reales: sin esto el ajuste "nice" del eje linear deja
+    // horas muertas a los costados.
+    chart.options.scales.x.min = first;
+    chart.options.scales.x.max = last === first ? first + MIN_MS : last;
+  }
   chart.update();
 
-  el.chartNote.textContent = buckets.length
-    ? `Promedio cada ${bucketMin} min · ${rows.length} lecturas · ${buckets.length} puntos`
+  el.chartNote.textContent = points.length
+    ? `${rows.length} lecturas · sin promediar`
     : 'Sin lecturas en este rango.';
 }
 
@@ -341,7 +385,7 @@ async function load() {
 
   const stats = renderStats(latest);
   if (readings) {
-    renderChart(readings.rows, range.bucketMin);
+    renderChart(readings.rows);
   } else {
     el.chartNote.textContent = 'No se pudieron cargar las lecturas.';
   }
