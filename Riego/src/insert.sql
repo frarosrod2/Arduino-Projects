@@ -1,4 +1,8 @@
--- Ejecutar en Supabase → SQL Editor
+-- Ejecutar en Supabase → SQL Editor.
+-- Es idempotente: podés correrlo entero las veces que quieras, tanto en una base
+-- nueva como en una ya creada. Ojo con crear la vista sin OR REPLACE o las policies
+-- sin DROP previo: el editor corre todo en una transacción, así que un error a
+-- mitad de camino revierte también lo de abajo.
 CREATE TABLE IF NOT EXISTS readings (
     id BIGSERIAL PRIMARY KEY,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -16,7 +20,7 @@ CREATE INDEX IF NOT EXISTS readings_recorded_at_idx ON readings (recorded_at DES
 CREATE INDEX IF NOT EXISTS readings_created_at_idx ON readings (created_at DESC);
 
 -- Vista útil: solo los eventos de riego
-CREATE VIEW waterings AS
+CREATE OR REPLACE VIEW waterings AS
 SELECT
     id,
     COALESCE(recorded_at, created_at) AS time,
@@ -34,10 +38,12 @@ ORDER BY
 ALTER TABLE
     readings ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Solo service role puede leer" ON readings;
 CREATE POLICY "Solo service role puede leer" ON readings FOR
 SELECT
     TO service_role USING (true);
 
+DROP POLICY IF EXISTS "ESP32 puede insertar" ON readings;
 CREATE POLICY "ESP32 puede insertar" ON readings FOR
 INSERT
     TO anon WITH CHECK (true);
